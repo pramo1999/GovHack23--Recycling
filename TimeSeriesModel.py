@@ -13,11 +13,14 @@ import numpy as np
 from statsmodels.tsa.stattools import adfuller
 import json
 
+# Number of years we are predicting for: 
+prediction_steps = 100
+
 # Suppress ARIMA warnings
 warnings.filterwarnings("ignore")
 
 # Load your data into a DataFrame
-# Replace 'RecyclePythonInput.csv' with your actual file path
+# Replace 'RecyclePythonInput.csv'
 inputData = pd.read_csv('RecyclePythonInput.csv')
 
 # Plotting the series
@@ -39,6 +42,12 @@ propData[column_list] = inputData[column_list].div(inputData[column_list].sum(ax
 print(total)
 print(propData)
 
+#combining the total column into the prop data column 
+
+
+#outputdata
+output_data = {}#propData.copy()
+
 # Specify the regression models you want to use
 regression_models = [
     LinearRegression(),
@@ -47,8 +56,11 @@ regression_models = [
     RandomForestRegressor()
 ]
 
+best_models = {} 
 errorList = []
 for column_name in column_list:
+    min_mse = float('inf')  # Initialize with a large value
+    best_model = None
     for model in regression_models: 
             errorSum = 0
             material_data = propData[[column_name]]  # Remove 'years' from the selection
@@ -68,9 +80,18 @@ for column_name in column_list:
             mse = mean_squared_error(y_test, y_pred)
             errorSum += mse
             # print(f'{model_name} - Mean Squared Error for {column_name}: {mse}')
-    errorList.append(errorSum)
-    print(f'{model_name} - Mean Squared Error: {errorSum}')
-    # import pdb; pdb.set_trace()
+            if errorSum < min_mse:
+                min_mse = errorSum
+                # Forecast using RandomForestRegressor model
+                X = inputData['years']                
+                future_years = np.arange(max(X) + 1, max(X) + prediction_steps + 1)
+                future_data = pd.DataFrame({'years': future_years})
+                future_predictions = model.predict(future_data)
+                # import pdb; pdb.set_trace()
+                best_model = model_name
+            errorList.append(errorSum)
+            print(f'{model_name} - Mean Squared Error: {errorSum}')
+
 # ================================================================================
 # ARIMA model
     errorARIMA = 0 
@@ -98,16 +119,38 @@ for column_name in column_list:
     errorList.append(errorARIMA)
     print(f'ARIMA - Mean Squared Error: {errorARIMA}')
 
+    if errorARIMA < min_mse:
+        min_mse = errorARIMA
+        best_model = 'ARIMA'
+        # Forecast using RandomForestRegressor model
+        X = inputData['years']             
+        future_years = np.arange(max(X) + 1, max(X) + prediction_steps + 1)
+        future_data = pd.DataFrame({'years': future_years})
+        future_predictions = model.predict(future_data)
+        best_model = model_name
+    output_data[column_name] = future_predictions
+    best_models[column_name] = best_model
+
+
 #Exporting the list of errors: 
 with open('MSE_models','w') as outfile:
     outfile.write('\n'.join(str(i) for i in errorList))
 
-# Using the model that works the best, we need to predict the future trend
-for i in (0,len(column_list)):
-    
-    listError = errorList[i*(len(regression_models)+1),(i+1)*(len(regression_models)+1)-1]
 
+#Exporting the list of errors: 
+output_data_json = {key: value.tolist() for key, value in output_data.items()}
+with open('output_predictions.json', 'w') as outfile:   
+    # import pdb;  pdb.set_trace()
+    json.dump(output_data_json, outfile)
 
+# Create a DataFrame from the best_models dictionary
+best_model_df = pd.DataFrame(best_models.items(), columns=['Column', 'Best_Model'])
+
+# Save the best_model_df DataFrame to a CSV file
+best_model_df.to_csv('best_models.csv', index=False)
+
+# # Save the output_data DataFrame to a new CSV file
+# output_data.to_csv('output_predictions.csv', index=False)
 
 
 # # =============================================================================

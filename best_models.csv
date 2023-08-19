@@ -1,34 +1,34 @@
 Column,Best_Model
-Asphalt,Ridge
-Bricks,RandomForestRegressor
-Concrete,RandomForestRegressor
-Plaster,RandomForestRegressor
-Soil and natural materials,Lasso
+Asphalt,GradientBoostingRegressor
+Bricks,KNeighborsRegressor
+Concrete,GradientBoostingRegressor
+Plaster,KNeighborsRegressor
+Soil and natural materials,DecisionTreeRegressor
 Container glass,Lasso
-Other glass,RandomForestRegressor
-Aluminium,LinearRegression
-Ferrous,RandomForestRegressor
-Other metals,Lasso
-Food organics,RandomForestRegressor
-Garden organics,RandomForestRegressor
-Other organics,LinearRegression
-Wood /timber,Lasso
-Cardboard,LinearRegression
-Newsprint and magazines,RandomForestRegressor
-Other paper,RandomForestRegressor
-Printing and writing paper,RandomForestRegressor
+Other glass,GradientBoostingRegressor
+Aluminium,Lasso
+Ferrous,GradientBoostingRegressor
+Other metals,SVR
+Food organics,SVR
+Garden organics,GradientBoostingRegressor
+Other organics,RandomForestRegressor
+Wood /timber,SVR
+Cardboard,KNeighborsRegressor
+Newsprint and magazines,KNeighborsRegressor
+Other paper,GradientBoostingRegressor
+Printing and writing paper,GradientBoostingRegressor
 Clothing,RandomForestRegressor
-Other textiles,Lasso
-Other rubber,RandomForestRegressor
-Passenger tyres,RandomForestRegressor
-Truck tyres,RandomForestRegressor
-Rubble,RandomForestRegressor
-Liquidpaperboard,RandomForestRegressor
-Offroad tyres,Ridge
-HDPE (2),RandomForestRegressor
-LDPE (4),Lasso
-Other plastics (7),Ridge
-PET (1),Lasso
-PP (5),RandomForestRegressor
-PS (6),Ridge
-PVC (3),RandomForestRegressor
+Other textiles,DecisionTreeRegressor
+Other rubber,GradientBoostingRegressor
+Passenger tyres,Lasso
+Truck tyres,GradientBoostingRegressor
+Rubble,GradientBoostingRegressor
+Liquidpaperboard,GradientBoostingRegressor
+Offroad tyres,KNeighborsRegressor
+HDPE (2),Lasso
+LDPE (4),SVR
+Other plastics (7),GradientBoostingRegressor
+PET (1),GradientBoostingRegressor
+PP (5),KNeighborsRegressor
+PS (6),GradientBoostingRegressor
+PVC (3),Lasso

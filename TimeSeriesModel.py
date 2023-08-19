@@ -6,13 +6,16 @@ from sklearn.metrics import mean_squared_error
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 import warnings
-from matplotlib import pyplot
+from matplotlib import pyplot as plt
 from pandas import read_csv
 import pmdarima as pm
 import numpy as np
 from statsmodels.tsa.stattools import adfuller
-import json
-
+from sklearn.svm import SVR
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+import os
 # Number of years we are predicting for: 
 prediction_steps = 100
 
@@ -27,20 +30,22 @@ inputData = pd.read_csv('RecyclePythonInput.csv')
 series = read_csv('wasteprojectionmodelPython.csv', header=0, index_col=0)
 print(series.head())
 series.plot()
-pyplot.show()
-
+# pyplot.show()
+plt.savefig(f'Recycling_plot.png')
+plt.close()
 # import pdb; pdb.set_trace()
 # Since there is no clear trend for each of the individual materials 
 # So a regression was fit to the total and proportions separately:
 
 # List of columns (excluding the first column, assuming it's 'years')
 column_list = inputData.columns[1:].tolist()
-import pdb; pdb.set_trace()
+# import pdb; pdb.set_trace()
 arr = inputData.to_numpy()
 
 total = arr[:,1:].sum(axis=-1)
 propData = inputData
 propData[column_list] = inputData[column_list].div(inputData[column_list].sum(axis=1), axis=0)
+
 print(total)
 print(propData)
 
@@ -52,25 +57,31 @@ output_data = {}#propData.copy()
 
 # Specify the regression models you want to use
 regression_models = [
-    LinearRegression(),
-    Ridge(),
+    # LinearRegression(),
     Lasso(),
-    RandomForestRegressor()
+    RandomForestRegressor(),
+    SVR(),
+    KNeighborsRegressor(),
+    DecisionTreeRegressor(),
+    GradientBoostingRegressor()
 ]
+# clears the output file for the errors 
+with open('MSE_models','w') as outfile:
+    outfile.write('')
 
 best_models = {} 
 errorList = []
 for column_name in column_list:
+    # import pdb;pdb.set_trace()
     min_mse = float('inf')  # Initialize with a large value
     best_model = None
     for model in regression_models: 
-            errorSum = 0
             material_data = propData[[column_name]]  # Remove 'years' from the selection
 
             # Splitting into train and test sets (80-20 split)
             X = material_data.index  # Use the index as the feature
             y = material_data[column_name]
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, shuffle=False)
 
             model_name = model.__class__.__name__  # Get the name of the current model
 
@@ -79,8 +90,9 @@ for column_name in column_list:
 
             # Prediction and evaluation
             y_pred = model.predict(X_test.to_numpy().reshape(-1, 1))  # Reshape X_test for compatibility
+            y_pred = np.clip(y_pred, 0, 1)
             mse = mean_squared_error(y_test, y_pred)
-            errorSum += mse
+            errorSum = mse
             # print(f'{model_name} - Mean Squared Error for {column_name}: {mse}')
             if errorSum < min_mse:
                 min_mse = errorSum
@@ -89,10 +101,12 @@ for column_name in column_list:
                 future_years = np.arange(max(X) + 1, max(X) + prediction_steps + 1)
                 future_data = pd.DataFrame({'years': future_years})
                 future_predictions = model.predict(future_data)
+                future_predictions = np.clip(future_predictions, 0, 1)
                 # import pdb; pdb.set_trace()
                 best_model = model_name
-            errorList.append(errorSum)
-            print(f'{model_name} - Mean Squared Error: {errorSum}')
+            errorList.append(errorSum)    
+            with open('MSE_models','a') as outfile:
+                outfile.write(f'{model_name} - Mean Squared Error: {errorSum}\n')
 
 # ================================================================================
 # ARIMA model
@@ -114,12 +128,15 @@ for column_name in column_list:
 
     # Forecast using ARIMA model
     y_pred_arima = model_arima_fit.forecast(steps=len(y_test))
+    y_pred_arima = np.clip(y_pred_arima, 0, 1) 
 
     # Print ARIMA results
     mse_arima = mean_squared_error(y_test, y_pred_arima)
     errorARIMA += mse_arima
     errorList.append(errorARIMA)
-    print(f'ARIMA - Mean Squared Error: {errorARIMA}')
+    with open('MSE_models','a') as outfile:
+        outfile.write(f'ARIMA - Mean Squared Error: {errorARIMA}\n')
+
 
     if errorARIMA < min_mse:
         min_mse = errorARIMA
@@ -129,19 +146,20 @@ for column_name in column_list:
         future_years = np.arange(max(X) + 1, max(X) + prediction_steps + 1)
         future_data = pd.DataFrame({'years': future_years})
         future_predictions = model.predict(future_data)
+        future_predictions = np.clip(future_predictions, 0, 1)
         best_model = model_name
     output_data[column_name] = future_predictions
     best_models[column_name] = best_model
 
 
 #Exporting the list of errors: 
-with open('MSE_models','w') as outfile:
-    outfile.write('\n'.join(str(i) for i in errorList))
 
 
+# import pdb; pdb.set_trace()
 #Exporting the list of errors:
 output_data_df = pd.DataFrame(output_data)
-
+for i in range(len(output_data_df)):
+    output_data_df.iloc[i] = output_data_df.iloc[i] / output_data_df.iloc[i].sum()
 # Save the output_data DataFrame to a CSV file
 output_data_df.to_csv('output_predictions.csv', index=False) 
 

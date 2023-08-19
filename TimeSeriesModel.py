@@ -1,10 +1,14 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
-from statsmodels.tsa.arima_model import ARIMA
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 import warnings
 from matplotlib import pyplot
 from pandas import read_csv
+import pmdarima as pm
 
 # Suppress ARIMA warnings
 warnings.filterwarnings("ignore")
@@ -32,9 +36,11 @@ print(propData)
 
 # Specify the regression models you want to use
 regression_models = [
-    # ... (your regression models here)
+    LinearRegression(),
+    Ridge(),
+    Lasso(),
+    RandomForestRegressor()
 ]
-
 for model in regression_models:
     errorList = 0
     for column_name in column_list:
@@ -58,6 +64,7 @@ for model in regression_models:
     print(f'{model_name} - Mean Squared Error: {errorList}')
 
 # ARIMA model
+errorARIMA = 0 
 for column_name in column_list:
     material_data = propData[[column_name]]  # Remove 'years' from the selection
 
@@ -72,11 +79,39 @@ for column_name in column_list:
 
     # Fit ARIMA model
     model_arima = ARIMA(y_train, order=(5, 1, 0))  # Example order, tune as needed
-    model_arima_fit = model_arima.fit(disp=0)
+    model_arima_fit = model_arima.fit()
 
     # Forecast using ARIMA model
-    y_pred_arima = model_arima_fit.forecast(steps=len(y_test))[0]
+    y_pred_arima = model_arima_fit.forecast(steps=len(y_test))
 
     # Print ARIMA results
     mse_arima = mean_squared_error(y_test, y_pred_arima)
-    print(f'ARIMA - Mean Squared Error for {column_name}: {mse_arima}')
+    errorARIMA += mse_arima
+
+print(f'ARIMA - Mean Squared Error: {errorARIMA}')
+
+
+# Loop through each material
+sArimaError = 0
+for column_name in column_list:
+    material_data = propData[[column_name, 'years']]  # Swap column order here
+
+    # Splitting into train and test sets (80-20 split)
+    X = material_data['years']
+    y = material_data[column_name]
+
+    # Convert index to datetime for SARIMA
+    X.index = pd.to_datetime(X)
+
+    # Fit SARIMA model
+    model_sarima = pm.auto_arima (y, test='adf', seasonal=True, m=5, 
+        trace=True, error_action='ignore', suppress_warnings=True, stepwise=True)
+    model_sarima_fit = model_sarima.fit(disp=0)
+
+    # Forecast using SARIMA model
+    y_pred_sarima = model_sarima_fit.predict(start=len(y), end=len(y) + len(y_test) - 1)
+
+    # Print SARIMA results
+    mse_sarima = mean_squared_error(y_test, y_pred_sarima)
+    sArimaError += mse_sarima
+print(f'SARIMA - Mean Squared Error: {sArimaError}')

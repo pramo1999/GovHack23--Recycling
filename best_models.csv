@@ -1,0 +1,34 @@
+Column,Best_Model
+Asphalt,Ridge
+Bricks,RandomForestRegressor
+Concrete,RandomForestRegressor
+Plaster,RandomForestRegressor
+Soil and natural materials,Lasso
+Container glass,Lasso
+Other glass,RandomForestRegressor
+Aluminium,LinearRegression
+Ferrous,RandomForestRegressor
+Other metals,Lasso
+Food organics,RandomForestRegressor
+Garden organics,RandomForestRegressor
+Other organics,LinearRegression
+Wood /timber,Lasso
+Cardboard,LinearRegression
+Newsprint and magazines,RandomForestRegressor
+Other paper,RandomForestRegressor
+Printing and writing paper,RandomForestRegressor
+Clothing,RandomForestRegressor
+Other textiles,Lasso
+Other rubber,RandomForestRegressor
+Passenger tyres,RandomForestRegressor
+Truck tyres,RandomForestRegressor
+Rubble,RandomForestRegressor
+Liquidpaperboard,RandomForestRegressor
+Offroad tyres,Ridge
+HDPE (2),RandomForestRegressor
+LDPE (4),Lasso
+Other plastics (7),Ridge
+PET (1),Lasso
+PP (5),RandomForestRegressor
+PS (6),Ridge
+PVC (3),RandomForestRegressor

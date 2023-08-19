@@ -35,8 +35,10 @@ pyplot.show()
 
 # List of columns (excluding the first column, assuming it's 'years')
 column_list = inputData.columns[1:].tolist()
+import pdb; pdb.set_trace()
+arr = inputData.to_numpy()
 
-total = inputData.sum(numeric_only=True)
+total = arr[:,1:].sum(axis=-1)
 propData = inputData
 propData[column_list] = inputData[column_list].div(inputData[column_list].sum(axis=1), axis=0)
 print(total)
@@ -137,11 +139,12 @@ with open('MSE_models','w') as outfile:
     outfile.write('\n'.join(str(i) for i in errorList))
 
 
-#Exporting the list of errors: 
-output_data_json = {key: value.tolist() for key, value in output_data.items()}
-with open('output_predictions.json', 'w') as outfile:   
-    # import pdb;  pdb.set_trace()
-    json.dump(output_data_json, outfile)
+#Exporting the list of errors:
+output_data_df = pd.DataFrame(output_data)
+
+# Save the output_data DataFrame to a CSV file
+output_data_df.to_csv('output_predictions.csv', index=False) 
+
 
 # Create a DataFrame from the best_models dictionary
 best_model_df = pd.DataFrame(best_models.items(), columns=['Column', 'Best_Model'])

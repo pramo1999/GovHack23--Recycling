@@ -55,16 +55,6 @@ print(propData)
 #outputdata
 output_data = {}#propData.copy()
 
-# Specify the regression models you want to use
-regression_models = [
-    # LinearRegression(),
-    Lasso(),
-    RandomForestRegressor(),
-    SVR(),
-    KNeighborsRegressor(),
-    DecisionTreeRegressor(),
-    GradientBoostingRegressor()
-]
 # clears the output file for the errors 
 with open('MSE_models','w') as outfile:
     outfile.write('')
@@ -75,6 +65,18 @@ for column_name in column_list:
     # import pdb;pdb.set_trace()
     min_mse = float('inf')  # Initialize with a large value
     best_model = None
+    
+    # Specify the regression models you want to use
+    regression_models = [
+        LinearRegression(),
+        Lasso(),
+        RandomForestRegressor(),
+        SVR(),
+        KNeighborsRegressor(),
+        DecisionTreeRegressor(),
+        GradientBoostingRegressor()
+    ]
+
     for model in regression_models: 
             material_data = propData[[column_name]]  # Remove 'years' from the selection
 
@@ -90,33 +92,35 @@ for column_name in column_list:
 
             # Prediction and evaluation
             y_pred = model.predict(X_test.to_numpy().reshape(-1, 1))  # Reshape X_test for compatibility
-            y_pred = np.clip(y_pred, 0, 1)
+            y_pred = np.clip(y_pred, 0, 1.5)
             mse = mean_squared_error(y_test, y_pred)
             errorSum = mse
-            # print(f'{model_name} - Mean Squared Error for {column_name}: {mse}')
+            print(f'{model_name} - Mean Squared Error for {column_name}: {mse}')
             if errorSum < min_mse:
+                print(f'errorSum {errorSum}, min_mse {min_mse}')
                 min_mse = errorSum
                 # Forecast using RandomForestRegressor model
                 X = inputData['years']                
                 future_years = np.arange(max(X) + 1, max(X) + prediction_steps + 1)
                 future_data = pd.DataFrame({'years': future_years})
                 future_predictions = model.predict(future_data)
-                future_predictions = np.clip(future_predictions, 0, 1)
+                future_predictions = np.clip(future_predictions, 0, 1.5)
                 # import pdb; pdb.set_trace()
                 best_model = model_name
+                print(column_name, best_model, future_predictions)
             errorList.append(errorSum)    
             with open('MSE_models','a') as outfile:
                 outfile.write(f'{model_name} - Mean Squared Error: {errorSum}\n')
 
-# ================================================================================
-# ARIMA model
+    # ================================================================================
+    # ARIMA model
     errorARIMA = 0 
     material_data = propData[[column_name]]  # Remove 'years' from the selection
 
     # Splitting into train and test sets (80-20 split)
     X = material_data.index  # Use the index as the feature
     y = material_data[column_name]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, shuffle=True)
 
     # Convert index to datetime for ARIMA
     X_train.index = pd.to_datetime(X_train)
@@ -128,7 +132,7 @@ for column_name in column_list:
 
     # Forecast using ARIMA model
     y_pred_arima = model_arima_fit.forecast(steps=len(y_test))
-    y_pred_arima = np.clip(y_pred_arima, 0, 1) 
+    y_pred_arima = np.clip(y_pred_arima, 0, 1.5) 
 
     # Print ARIMA results
     mse_arima = mean_squared_error(y_test, y_pred_arima)
@@ -146,10 +150,12 @@ for column_name in column_list:
         future_years = np.arange(max(X) + 1, max(X) + prediction_steps + 1)
         future_data = pd.DataFrame({'years': future_years})
         future_predictions = model.predict(future_data)
-        future_predictions = np.clip(future_predictions, 0, 1)
-        best_model = model_name
+        future_predictions = np.clip(future_predictions, 0, 1.5)
+        print(column_name, best_model, future_predictions)
     output_data[column_name] = future_predictions
     best_models[column_name] = best_model
+    if column_name == 'Concrete':
+        import pdb; pdb.set_trace()
 
 
 #Exporting the list of errors: 

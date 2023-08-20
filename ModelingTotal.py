@@ -48,63 +48,79 @@ regressors = [
 ]
 
 results = {}
-for i in range(0,10):
-    for regressor in regressors:
-        model_name = regressor.__class__.__name__
-        model = regressor.fit(df[['Year']], df['Value'])
-        
-        # Predict for the next 100 years
-        future_years = np.arange(2022, 2122)
-        predictions = model.predict(future_years.reshape(-1, 1))
-        results[model_name] = predictions
-        
-        # Save predictions to CSV
-        predictions_df = pd.DataFrame({'Year': future_years, 'Prediction': predictions})
-        predictions_df.to_csv(f'TotalPrediction/{model_name}_predictions.csv', index=False)
-        
-        # Calculate error (you might need to adjust this depending on the regression type)
-        error = np.mean((df['Value'] - model.predict(df[['Year']]))**2)
-        
-        # Save error to CSV
-        error_df = pd.DataFrame({'Model': [model_name], 'Error': [error]})
-        if not os.path.exists('TotalPrediction/error.csv'):
-            error_df.to_csv('TotalPrediction/error.csv', index=False)
-        else:
-            error_df.to_csv('TotalPrediction/error.csv', mode='a', header=False, index=False)
-        
-        # Plot and save the predictions
-        plt.figure()
-        plt.plot(df['Year'], df['Value'], label='Actual')
-        plt.plot(future_years, predictions, label='Predicted')
-        plt.title(model_name)
-        plt.legend()
-        plt.savefig(f'TotalPrediction/{model_name}_plot.png')
-        plt.close()
 
-    # ARIMA and Seasonal ARIMA
-    order = (5, 1, 0)  # Example order (you need to tune this based on your data)
-    seasonal_order = (1, 1, 1, 12)  # Example seasonal order
+for regressor in regressors:
+    model_name = regressor.__class__.__name__
+    model = regressor.fit(df[['Year']], df['Value'])
+    
+    # Predict for the next 100 years
+    future_years = np.arange(2022, 2122)
+    predictions = model.predict(future_years.reshape(-1, 1))
+    results[model_name] = predictions
+    
+    # Save predictions to CSV
+    predictions_df = pd.DataFrame({'Year': future_years, 'Prediction': predictions})
+    predictions_df.to_csv(f'TotalPrediction/{model_name}_predictions.csv', index=False)
+    
+    # Calculate error (you might need to adjust this depending on the regression type)
+    error = np.mean((df['Value'] - model.predict(df[['Year']]))**2)
+    
+    # Save error to CSV
+    error_df = pd.DataFrame({'Model': [model_name], 'Error': [error]})
+    if not os.path.exists('TotalPrediction/error.csv'):
+        error_df.to_csv('TotalPrediction/error.csv', index=False)
+    else:
+        error_df.to_csv('TotalPrediction/error.csv', mode='a', header=False, index=False)
+    
+    # Plot and save the predictions
+    plt.figure()
+    plt.plot(df['Year'], df['Value'], label='Actual')
+    plt.plot(future_years, predictions, label='Predicted')
+    plt.title(model_name)
+    plt.legend()
+    plt.savefig(f'TotalPrediction/{model_name}_plot.png')
+    plt.close()
 
-    arima_model = ARIMA(df['Value'], order=order)
-    sarima_model = SARIMAX(df['Value'], order=order, seasonal_order=seasonal_order)
+# ARIMA and Seasonal ARIMA
+order = (5, 1, 0)  # Example order (you need to tune this based on your data)
+seasonal_order = (1, 1, 1, 12)  # Example seasonal order
 
-    arima_result = arima_model.fit()
-    sarima_result = sarima_model.fit()
+arima_model = ARIMA(df['Value'], order=order)
+sarima_model = SARIMAX(df['Value'], order=order, seasonal_order=seasonal_order)
 
-    arima_predictions = arima_result.predict(start=len(df), end=len(df) + 99)
-    sarima_predictions = sarima_result.predict(start=len(df), end=len(df) + 99)
+arima_result = arima_model.fit()
+sarima_result = sarima_model.fit()
 
-    results['ARIMA'] = arima_predictions
-    results['SARIMA'] = sarima_predictions
+arima_predictions = arima_result.predict(start=len(df), end=len(df) + 99)
+sarima_predictions = sarima_result.predict(start=len(df), end=len(df) + 99)
 
-    for model_name, predictions in results.items():
-        predictions_df = pd.DataFrame({'Year': future_years, 'Prediction': predictions})
-        predictions_df.to_csv(f'TotalPrediction/{model_name}_predictions.csv', index=False)
-        
-        plt.figure()
-        plt.plot(df['Year'], df['Value'], label='Actual')
-        plt.plot(future_years, predictions, label='Predicted')
-        plt.title(model_name)
-        plt.legend()
-        plt.savefig(f'TotalPrediction/{model_name}_plot.png')
-        plt.close()
+results['ARIMA'] = arima_predictions
+results['SARIMA'] = sarima_predictions
+
+# Calculate and save errors for ARIMA and SARIMA
+arima_error = np.mean((df['Value'] - arima_result.fittedvalues)**2)
+sarima_error = np.mean((df['Value'] - sarima_result.fittedvalues)**2)
+
+# Append errors to the error file
+error_arima_df = pd.DataFrame({'Model': ['ARIMA'], 'Error': [arima_error]})
+error_sarima_df = pd.DataFrame({'Model': ['SARIMA'], 'Error': [sarima_error]})
+
+if not os.path.exists('TotalPrediction/error.csv'):
+    error_arima_df.to_csv('TotalPrediction/error.csv', index=False)
+else:
+    error_arima_df.to_csv('TotalPrediction/error.csv', mode='a', header=False, index=False)
+
+error_sarima_df.to_csv('TotalPrediction/error.csv', mode='a', header=False, index=False)
+
+
+for model_name, predictions in results.items():
+    predictions_df = pd.DataFrame({'Year': future_years, 'Prediction': predictions})
+    predictions_df.to_csv(f'TotalPrediction/{model_name}_predictions.csv', index=False)
+    
+    plt.figure()
+    plt.plot(df['Year'], df['Value'], label='Actual')
+    plt.plot(future_years, predictions, label='Predicted')
+    plt.title(model_name)
+    plt.legend()
+    plt.savefig(f'TotalPrediction/{model_name}_plot.png')
+    plt.close()
